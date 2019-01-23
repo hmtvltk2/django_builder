@@ -32,12 +32,7 @@ describe('Testing ModelController', function () {
         renderFactory = $injector.get('RenderFactory');
         tarballFactory = $injector.get('TarballFactory');
 
-        // backend definition common for all tests
-        $httpBackend.when('GET', 'app/partials/py/settings.py').respond('');
-        $httpBackend.when('GET', 'app/partials/py/manage.py').respond('');
-        $httpBackend.when('GET', 'app/partials/py/urls.py').respond('');
-        $httpBackend.when('GET', 'app/partials/py/wsgi.py').respond('');
-        $httpBackend.when('GET', 'app/partials/py/channels.py').respond('');
+       
 
         project_factory = $injector.get('ProjectFactory');
 
