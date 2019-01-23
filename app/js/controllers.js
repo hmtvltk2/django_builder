@@ -155,8 +155,8 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 download_a.text('Click here to download ' + filename);
                 download_a.on("click", function () {
                     var include_channels = channels_check_box ? channels_check_box.is(':checked') : false;
-                    $scope.create_tar_ball_url(include_project, include_channels).then(function (download_url) {
-                        jQuery(hidden_download).attr('href', download_url).attr('download', filename)[0].click();
+                    $scope.create_tar_ball_url(include_project, include_channels).then(function (content) {
+                        saveAs(content, filename);
                     })
                 });
 

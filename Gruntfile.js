@@ -41,6 +41,7 @@ module.exports = function (grunt) {
                     'node_modules/angulartics-google-analytics/dist/angulartics-ga.min.js',
                     'node_modules/select2/dist/js/select2.js',
                     'node_modules/angular-ui-ace/src/ui-ace.js',
+                    'node_modules/jszip/dist/jszip.min.js',
                     'node_modules/angular-local-storage/dist/angular-local-storage.min.js',
                     'node_modules/bootstrap/dist/js/bootstrap.min.js',
                     'app/ace/ace-1.1.3.js',
@@ -62,7 +63,7 @@ module.exports = function (grunt) {
         },
         watch: {
             files: ['*.js', 'app/js/*.js', 'app/css/*.css'],
-            tasks: ['concat',  'uglify']
+            tasks: ['concat', 'uglify']
         },
         karma: {
             e2e: {

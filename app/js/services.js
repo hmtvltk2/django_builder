@@ -16,7 +16,7 @@ function TarballFactory() {
                 zip.file(file_name, content)
             };
             tf.get_url = function (n) {
-                promise = zip.generateAsync({ type: "uint8array" });
+                return zip.generateAsync({ type: "uint8array" });
             };
         }
         return new Tarball();
