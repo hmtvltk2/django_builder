@@ -1,9 +1,9 @@
 /* Controllers */
 
 angular.module('builder.controllers', ['LocalStorageModule'])
-    .controller('ModelController', ['$scope', '$http', 'ProjectFactory', 'ModelFactory', 'ModelParser', 'FieldFactory',
+    .controller('ModelController', ['$scope', '$http', 'ModelFactory', 'ModelParser', 'FieldFactory',
         'RelationshipFactory', 'localStorageService', 'MessageService', 'RenderFactory', 'TarballFactory',
-        function ($scope, $http, project_factory, model_factory, ModelParser, field_factory,
+        function ($scope, $http, model_factory, ModelParser, field_factory,
             relationship_factory, localStorageService, message_service, renderFactory, tarballFactory) {
             $scope.models = [];
             $scope.new_models = [];
@@ -28,7 +28,6 @@ angular.module('builder.controllers', ['LocalStorageModule'])
             $scope.messageService = new message_service();
             $scope.localStorageService = localStorageService;
             $scope.field_factory = new field_factory();
-            $scope.project_factory = new project_factory($http);
             $scope.model_factory = model_factory;
             $scope.relationship_factory = new relationship_factory();
             $scope.render_factory = new renderFactory($scope.built_in_models);
@@ -40,14 +39,11 @@ angular.module('builder.controllers', ['LocalStorageModule'])
             $scope.DJANGO_2X = '2.0'
             $scope._django_version = $scope.DJANGO_2X;
 
-            $scope.create_tar_ball_url = function (include_project, include_channels) {
-                var README = 'Built with django_builder\n';
+            $scope.create_tar_ball_url = function (include_project) {
                 var __init__ = '#';
 
-                const project_name = $scope.project_name();
                 const app_name = $scope.app_name();
 
-                var models = $scope.render_factory.render_models_py(app_name, $scope.models, $scope.django2());
                 var views = $scope.render_factory.render_views_py(app_name, $scope.models);
 
                 var urls = $scope.render_factory.render_urls_py(app_name, $scope.models, $scope.django2());
@@ -60,20 +56,18 @@ angular.module('builder.controllers', ['LocalStorageModule'])
 
                 var root_folder = app_name;
 
-                if (include_project) {
-                    root_folder = project_name + '/' + app_name;
+                // if (include_project) {
+                //     root_folder = project_name + '/' + app_name;
 
-                    var project_urls = $scope.project_factory.render_project_urls_py(app_name);
-                    var project_manage = $scope.project_factory.render_project_manage_py(project_name);
+                //     var project_urls = $scope.project_factory.render_project_urls_py(app_name);
+                //     var project_manage = $scope.project_factory.render_project_manage_py(project_name);
 
-                    tarfile.append(project_name + '/manage.py', project_manage);
-                    tarfile.append(project_name + '/' + project_name + '/urls.py', project_urls);
-                    tarfile.append(project_name + '/' + project_name + '/__init__.py', __init__);
-                }
+                //     tarfile.append(project_name + '/manage.py', project_manage);
+                //     tarfile.append(project_name + '/' + project_name + '/urls.py', project_urls);
+                //     tarfile.append(project_name + '/' + project_name + '/__init__.py', __init__);
+                // }
 
-                tarfile.append(root_folder + '/README.txt', README);
                 tarfile.append(root_folder + '/__init__.py', __init__);
-                tarfile.append(root_folder + '/models.py', models);
                 tarfile.append(root_folder + '/views.py', views);
                 tarfile.append(root_folder + '/urls.py', urls);
                 tarfile.append(root_folder + '/forms.py', forms);
@@ -85,27 +79,6 @@ angular.module('builder.controllers', ['LocalStorageModule'])
 
                 var promises = []
 
-                if (include_channels) {
-                    promises.push(new Promise(function (resolve, reject) {
-                        $scope.project_factory.load('app/partials/py/asgi.py', $scope.app_name()).then(
-                            function (data) {
-                                tarfile.append(project_name + '/' + project_name + '/asgi.py', data); resolve()
-                            })
-                    }));
-                    promises.push(new Promise(function (resolve, reject) {
-                        $scope.project_factory.load('app/partials/py/consumers.py', $scope.app_name()).then(
-                            function (data) {
-                                tarfile.append(project_name + '/' + project_name + '/consumers.py', data); resolve()
-                            })
-                    }));
-                    promises.push(new Promise(function (resolve, reject) {
-                        $scope.project_factory.load('app/partials/py/routing.py', $scope.app_name()).then(
-                            function (data) {
-                                tarfile.append(project_name + '/' + project_name + '/routing.py', data); resolve()
-                            })
-                    }));
-                }
-
                 return Promise.all(promises).then(function () {
                     return tarfile.get_url();
                 })
@@ -115,38 +88,8 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 var identifier = 'django_builder_download_app_modal';
                 return $scope.create_download_modal(false, false, filename, identifier);
             };
-            $scope.create_download_modal_project = function () {
-                var filename = $scope.project_name() + '.tar';
 
-                var extra_message = jQuery('<p>');
-                extra_message.text('The project download includes the following files:');
-                var extra_ul = jQuery('<div>').addClass('well well-sm');
-                extra_ul.append(jQuery("<p>").text('requirements.txt'));
-                extra_ul.append(jQuery("<p>").text('manage.py'));
-                extra_ul.append(jQuery("<p>").text($scope.project_name() + '/settings.py'));
-                extra_ul.append(jQuery("<p>").text($scope.project_name() + '/urls.py'));
-                extra_ul.append(jQuery("<p>").text($scope.project_name() + '/wsgi.py'));
-                extra_message.append(jQuery("<br><br>"));
-                extra_message.append(extra_ul);
-
-                var channels_message = jQuery('<div>')
-
-                var channels_check_box = jQuery("<input type='checkbox' />")
-                channels_message.append(jQuery("<i>").addClass('fa fa-star fa-spin').css('color', 'red'));
-                channels_message.append(jQuery("<span> Include Django Channels Config&nbsp;</span>"));
-                channels_message.append(channels_check_box);
-
-                var extra_channels = jQuery('<div>').addClass('well well-sm');
-                extra_channels.append(jQuery("<p>").text($scope.project_name() + '/asgi.py'));
-                extra_channels.append(jQuery("<p>").text($scope.project_name() + '/consumers.py'));
-                extra_channels.append(jQuery("<p>").text($scope.project_name() + '/routers.py'));
-
-                extra_message.append(jQuery('<p>').append(channels_message)).append(extra_channels);
-
-                var identifier = 'django_builder_download_project_modal';
-                return $scope.create_download_modal(true, channels_check_box, filename, identifier, extra_message)
-            };
-            $scope.create_download_modal = function (include_project, channels_check_box, filename, identifier, extra_message) {
+            $scope.create_download_modal = function (include_project, filename, identifier, extra_message) {
 
                 var hidden_download = jQuery('<a>').attr('id', 'django_builder_download_hidden').css('display', 'none');
 
@@ -154,9 +97,8 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 download_a.addClass('btn btn-success btn-lg').css('text-transform', 'none');
                 download_a.text('Click here to download ' + filename);
                 download_a.on("click", function () {
-                    var include_channels = channels_check_box ? channels_check_box.is(':checked') : false;
-                    $scope.create_tar_ball_url(include_project, include_channels).then(function (content) {
-                        saveAs(content, filename);
+                    $scope.create_tar_ball_url(include_project).then(function (download_url) {
+                        jQuery(hidden_download).attr('href', download_url).attr('download', filename)[0].click();
                     })
                 });
 
@@ -288,7 +230,7 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                     $scope.messageService.simple_error('Sorry', $scope.ERR_PROCESS_MODELS_PY_MULTIPLE_FILES).modal('show');
                     return false
                 } else {
-                    var parser = ModelParser($scope);
+                    var parser = ModelParser($scope, $http);
                     parser.parse(files[0], function (models) {
                         $scope.add_new_models(models);
                     });
@@ -357,9 +299,6 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 }
 
                 switch (_id) {
-                    case "builder_models":
-                        set_editor_value($scope.render_factory.render_models_py($scope.app_name(), $scope.models, $scope.django2()));
-                        break;
                     case "builder_views":
                         set_editor_value($scope.render_factory.render_views_py($scope.app_name(), $scope.models));
                         break;
@@ -511,7 +450,7 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                         'opts': 'auto_now=True, editable=False'
                     })
                 ];
-                var model = model_factory(model_opts, $scope);
+                var model = model_factory(model_opts, $scope, $http);
                 $scope.models.push(model);
                 $scope.saveApp();
                 $scope.$apply();
@@ -576,7 +515,7 @@ angular.module('builder.controllers', ['LocalStorageModule'])
             };
 
             $scope.loadModel = function (model_opts) {
-                var model = model_factory(model_opts, $scope);
+                var model = model_factory(model_opts, $scope, $http);
                 $scope.models.push(model);
             };
 

@@ -1,0 +1,38 @@
+{% extends "sample/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+
+{% block title %}
+Cập Nhật __MODEL_NAME__
+{% endblock %}
+
+{% block header_title %}
+<i class="icon-arrow-left52 mr-2"></i>
+<span>Cập Nhật __MODEL_NAME__</span>
+{% endblock %}
+
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang Chủ</a>
+    <a href="#" class="breadcrumb-item">__MODEL_NAME__</a>
+    <span class="breadcrumb-item active">Cập Nhật</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header header-elements-inline">
+        <h5 class="card-title">Cập Nhật __MODEL_NAME__</h5>
+    </div>
+
+    <div class="card-body">
+        {% include '__APP_NAME__/_form.html' %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_script %}
+{{ form.media }}
+{% endblock extra_script %}

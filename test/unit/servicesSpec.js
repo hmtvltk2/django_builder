@@ -31,7 +31,7 @@ describe('service', function () {
     it('parserFactory correctly parses a model', function (done) {
         const pfactory = parserFactory($scope)
         const model_text = "class MyModel(Model):\n";
-        pfactory.parse(new Blob([model_text]), function(models){
+        pfactory.parse(new Blob([model_text]), function (models) {
             expect(models.length).toBe(1)
             expect(models[0].name).toBe('MyModel')
             expect(models[0].fields.length).toBe(0)
@@ -42,7 +42,7 @@ describe('service', function () {
     it('parserFactory correctly parses a model with numbers', function (done) {
         const pfactory = parserFactory($scope)
         const model_text = "class MyModel01(Model):\n";
-        pfactory.parse(new Blob([model_text]), function(models){
+        pfactory.parse(new Blob([model_text]), function (models) {
             expect(models.length).toBe(1)
             expect(models[0].name).toBe('MyModel01')
             expect(models[0].fields.length).toBe(0)
@@ -53,7 +53,7 @@ describe('service', function () {
     it('parserFactory correctly parses a model with fields', function (done) {
         const pfactory = parserFactory($scope)
         const model_text = "class MyModelWithFields(Model):\n    name = models.CharField(max_length=255)\n";
-        pfactory.parse(new Blob([model_text]), function(models){
+        pfactory.parse(new Blob([model_text]), function (models) {
             expect(models.length).toBe(1)
             expect(models[0].name).toBe('MyModelWithFields')
             expect(models[0].fields.length).toBe(1)
@@ -82,7 +82,7 @@ describe('service', function () {
         expect(info.find('.modal-body').text()).toBe(message);
 
         var counter = 0;
-        var confirm = ms.simple_confirm(title, message,  function(){counter+=1;});
+        var confirm = ms.simple_confirm(title, message, function () { counter += 1; });
         expect(confirm.find('.modal-header').text()).toBe(title);
         expect(confirm.find('.modal-body').text()).toBe(message);
         confirm.find('.btn-primary').click();
@@ -95,20 +95,20 @@ describe('service', function () {
         var form = jQuery('<form>').append(input);
 
         var simple_form = ms.simple_form(title, message, form,
-            function(return_form){form_val=return_form;}
+            function (return_form) { form_val = return_form; }
         );
         expect(simple_form.find('.modal-header').text()).toBe(title);
         expect(simple_form.find('.modal-body').text()).toBe(message);
         simple_form.find('input').val(field_val);
         simple_form.find('.btn-primary').click();
-        expect(jQuery(form_val).serialize()).toBe(field_name+'='+field_val);
+        expect(jQuery(form_val).serialize()).toBe(field_name + '=' + field_val);
 
         var simple_input_val = 'val';
         var returned_val = '';
-        var simple_input_callback = function(callback_val){returned_val=callback_val};
+        var simple_input_callback = function (callback_val) { returned_val = callback_val };
         var simple_input = ms.simple_input(title, message, '', simple_input_callback);
         expect(simple_input.find('.modal-header').text()).toBe(title);
-        expect(simple_input.find('.modal-body').text()).toBe(message+'error message');
+        expect(simple_input.find('.modal-body').text()).toBe(message + 'error message');
         simple_input.find('input').val(simple_input_val);
         simple_input.find('.btn-primary').click();
         expect(returned_val).toBe(simple_input_val);
@@ -126,7 +126,7 @@ describe('service', function () {
         var render0 = $scope.render_factory.render_all('app_name', []);
         expect(render0.length).toBeGreaterThan(500);
         var model_name = 'Model';
-        var model_opts = {"name": model_name};
+        var model_opts = { "name": model_name };
         var model = model_factory(model_opts, $scope);
         var render1 = $scope.render_factory.render_all('app_name', [model]);
         expect(render1.length).toBeGreaterThan(2000);
@@ -138,7 +138,7 @@ describe('service', function () {
         var rf = new relationship_factory();
 
         // Model
-        var model_opts = {"name": 'Model'};
+        var model_opts = { "name": 'Model' };
         var model = model_factory(model_opts, $scope);
 
         expect(model.readable_fields().length).toBe(0);
@@ -148,7 +148,7 @@ describe('service', function () {
 
         // Field
         var field_name = 'Field';
-        var field_opts = {"name": field_name, "type": 'FieldType'};
+        var field_opts = { "name": field_name, "type": 'FieldType' };
         var field = ff.make_field(field_opts, $scope);
         model.fields.push(field);
 
@@ -156,7 +156,7 @@ describe('service', function () {
 
         // Relationship
         var rel_name = 'Rel';
-        var rel_opts = {"name": rel_name, "type": 'RelType', "to": 'RelTo'};
+        var rel_opts = { "name": rel_name, "type": 'RelType', "to": 'RelTo' };
         var rel = rf.make_relationship(rel_opts);
         model.relationships.push(rel);
         $scope.models.push(model);
@@ -169,7 +169,7 @@ describe('service', function () {
 
         // unreadable Field
         var un_field_name = 'Unreadable';
-        var un_field_opts = {"name": un_field_name, "type": 'FieldType', 'opts': 'readonly=true'};
+        var un_field_opts = { "name": un_field_name, "type": 'FieldType', 'opts': 'readonly=true' };
         var un_field = ff.make_field(un_field_opts, $scope);
         model.fields.push(un_field);
 
@@ -177,7 +177,7 @@ describe('service', function () {
 
         // auto_now_add Field
         var auto_add_field_name = 'Unreadable';
-        var auto_add_field_opts = {"name": un_field_name, "type": 'FieldType', 'opts': 'auto_now_add=true'};
+        var auto_add_field_opts = { "name": un_field_name, "type": 'FieldType', 'opts': 'auto_now_add=true' };
         var auto_add_field = ff.make_field(un_field_opts, $scope);
         model.fields.push(auto_add_field);
 
@@ -185,30 +185,30 @@ describe('service', function () {
 
         // Name Field
         var field_name_2 = 'name';
-        var field_opts_2 = {"name": field_name_2, "type": 'FieldType'};
+        var field_opts_2 = { "name": field_name_2, "type": 'FieldType' };
         var field_2 = ff.make_field(field_opts_2, $scope);
         model.fields.push(field_2);
         expect(model.name_field()).toBe(field_name_2);
 
         // Created Field
         var field_name_3 = 'created';
-        var field_opts_3 = {"name": field_name_3, "type": 'FieldType'};
+        var field_opts_3 = { "name": field_name_3, "type": 'FieldType' };
         var field_3 = ff.make_field(field_opts_3, $scope);
         model.fields.push(field_3);
         expect(model.ordering_field()).toBe(field_name_3);
 
         // Slug Field
         var field_name_4 = 'slug';
-        var field_opts_4 = {"name": field_name_4, "type": 'FieldType'};
+        var field_opts_4 = { "name": field_name_4, "type": 'FieldType' };
         var field_4 = ff.make_field(field_opts_4, $scope);
         model.fields.push(field_4);
         expect(model.identifier()).toBe(field_name_4);
-        
+
     });
     it('have field factory checks', function () {
         var ff = new field_factory();
 
-        var field_opts = {"name": 'Field', "type": 'django.db.models.TextField'};
+        var field_opts = { "name": 'Field', "type": 'django.db.models.TextField' };
         var field = ff.make_field(field_opts, $scope);
 
         var edit_form = field.edit_form($scope);
@@ -221,7 +221,7 @@ describe('service', function () {
 
     it('have relationship factory checks', function () {
         var rf = new relationship_factory();
-        var rel_opts = {"name": 'Rel', "type": 'django.db.models.ForeignKey', "to": 'RelTo'};
+        var rel_opts = { "name": 'Rel', "type": 'django.db.models.ForeignKey', "to": 'RelTo' };
         var rel = rf.make_relationship(rel_opts);
 
         var rel_edit_form = rel.edit_form($scope);

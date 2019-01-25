@@ -1,0 +1,61 @@
+{% extends "sample/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+
+{% block title %}
+Thông Tin Chi Tiết __MODEL_NAME__
+{% endblock %}
+
+{% block header_title %}
+<i class="icon-arrow-left52 mr-2"></i>
+<span>Thông Tin Chi Tiết __MODEL_NAME__</span>
+{% endblock %}
+
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang chủ</a>
+    <a href="{% url 'index' %}" class="breadcrumb-item">__MODEL_NAME__</a>
+    <span class="breadcrumb-item active">Thông Tin Chi Tiết</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header header-elements-inline">
+        <h5 class="card-title">Thông Tin Chi Tiết __MODEL_NAME__</h5>
+        <div class="header-elements">
+            <a class="btn bg-teal-400 btn-sm btn-labeled btn-labeled-right legitRipple mr-1" href="{% url 'update' model.id %}">Sửa
+                <b><i class="icon-pencil7"></i></b></a>
+            <a class="btn-delete btn bg-danger btn-sm btn-labeled btn-labeled-right legitRipple" href="{% url 'delete' model.id %}">Xóa
+                <b><i class="icon-trash"></i></b></a>
+        </div>
+    </div>
+
+    <table class="table table-view">
+        <tbody>
+            __VIEW_BODY__
+
+        </tbody>
+    </table>
+
+</div>
+{% endblock content %}
+
+
+{% block extra_head %}
+<style>
+    table.table-view th {
+        width: 1%;
+        white-space: nowrap;
+    }
+</style>
+{% endblock extra_head %}
+
+
+{% block extra_script %}
+<script src="{% static 'limitless/js/sweetalert.min.js' %}"></script>
+<script src="{% static 'limitless/js/crud_utils.js' %}"></script>
+
+{% endblock extra_script %}

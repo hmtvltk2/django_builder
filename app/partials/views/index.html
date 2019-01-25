@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+
+{% block title %}
+Danh sách trạm LPG
+{% endblock %}
+
+{% block header_title %}
+<i class="icon-arrow-left52 mr-2"></i>
+<span>Danh sách trạm LPG</span>
+{% endblock %}
+
+{% block module_title %}
+CHUYÊN ĐỀ LPG
+{% endblock %}
+
+{% block navbar %}
+<li class="nav-item">
+    <a href="/" class="navbar-nav-link">
+        <i class="icon-home4 mr-2"></i> Trang chủ
+    </a>
+</li>
+
+<!-- <li class="nav-item dropdown">
+    <a href="#" class="navbar-nav-link dropdown-toggle active" data-toggle="dropdown">
+        <i class="icon-strategy mr-2"></i> Starter kit
+    </a>
+
+    <div class="dropdown-menu">
+        <div class="dropdown-header">Basic layouts</div>
+        <div class="dropdown-submenu">
+            <a href="#" class="dropdown-item dropdown-toggle"><i class="icon-paragraph-justify3"></i> Navbars</a>
+            <div class="dropdown-menu">
+                <a href="../seed/navbar_main_fixed.html" class="dropdown-item">Main navbar fixed</a>
+                <a href="../seed/navbar_main_hideable.html" class="dropdown-item">Main navbar hideable</a>
+                <a href="../seed/navbar_secondary_sticky.html" class="dropdown-item">Secondary navbar sticky</a>
+                <a href="../seed/navbar_both_fixed.html" class="dropdown-item">Both navbars fixed</a>
+            </div>
+        </div>
+        <div class="dropdown-header">Optional layouts</div>
+        <a href="../seed/layout_boxed.html" class="dropdown-item"><i class="icon-align-center-horizontal"></i>
+            Boxed layout</a>
+    </div>
+</li> -->
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang chủ</a>
+    <span class="breadcrumb-item active">__MODEL_NAME__</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title font-weight-bold">Tìm Kiếm __MODEL_NAME__</h5>
+    </div>
+    <div class="card-body">
+        <form action="/" method="get">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6">
+                    {{form.tentramcap|as_crispy_field}}
+                    {{form.loaidoituongLPG|as_crispy_field}}
+                </div>
+                <div class="col-md-6">
+                    {{form.diachi|as_crispy_field}}
+                    {{form.congsuat|as_crispy_field}}
+                </div>
+            </div>
+
+            <div class="text-right">
+                <button type="submit" class="btn btn-primary"><i class="icon-search4 mr-2"></i>Tìm kiếm </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header header-elements-inline">
+        <h5 class="card-title font-weight-bold">Danh Sách __MODEL_NAME__</h5>
+        <div class="header-elements">
+            <div class="btn-group">
+                <button type="button" class="btn btn-icon bg-teal-400 dropdown-toggle" title="Export" data-toggle="dropdown">
+                    <i class="icon-download"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <button type="button" class="dropdown-item exportToExcelBtn">
+                        <i class="icon-file-excel text-success mr-2"></i>
+                        Xuất ra Excel
+                    </button>
+                    <button class="dropdown-item exportToCSVBtn" type="button">
+                        <i class="icon-file-xml text-danger mr-2"></i>
+                        Xuất ra CSV
+                    </button>
+                    <button class="dropdown-item exportToJSONBtn" type="button">
+                        <i class="icon-file-css text-primary mr-2"></i>
+                        Xuất ra JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <th style="width:3%">STT</th>
+            __INDEX_HEADER__
+        </thead>
+        <tbody>
+
+            {% for model in models %}
+            <tr>
+                <td>{{forloop.counter}}</td>
+                __INDEX_BODY__
+                <td>
+                    <div class="text-nowrap text-center">
+                        <a href="{% url 'view' model.id %}" class="btn btn-icon bg-success-400"><i class="icon-eye"></i></a>
+                        <a href="{% url 'update' model.id %}" class="btn btn-icon bg-primary-400"><i class="icon-pencil5"></i></a>
+                        <a href="{% url 'delete' model.id %}" class="btn-delete btn btn-icon bg-danger-400">
+                            <i class="icon-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+    </table>
+</div>
+
+
+{% endblock content %}
+
+
+{% block extra_head %}
+<style>
+    .table td,
+    .table th {
+        padding: .75rem 1rem
+    }
+</style>
+{% endblock extra_head %}
+
+
+{% block extra_script %}
+<script src="{% static 'limitless/js/select2.min.js' %}"></script>
+<script src="{% static 'limitless/js/datatables.min.js' %}"></script>
+<script src="{% static 'limitless/js/buttons.min.js' %}"></script>
+<script src="{% static 'limitless/js/jszip/jszip.min.js' %}"></script>
+<script src="{% static 'limitless/js/sweetalert.min.js' %}"></script>
+<script src="{% static 'limitless/js/crud_utils.js' %}"></script>
+<script>
+    $(function () {
+        $('form select').select2();
+        const filename = $('.table').closest('.card').find('.card-title').text();
+
+        const datatable = $('.table').DataTable({
+            dom: '<"datatable-scroll-wrap"t><"datatable-footer"ip>',
+            pageLength: 20,
+            autoWidth: false,
+            buttons: [
+                {
+                    extend: 'collection',
+                    text: '<i class="icon-download"></i>',
+                    className: 'btn bg-teal-400 btn-icon dropdown-toggle',
+                    buttons: [
+                        { extend: 'csv', className: 'exportCSV', filename: filename, title: null },
+                        { extend: 'excel', className: 'exportExcel', filename: filename, title: null },
+                        {
+                            className: 'exportJSON',
+                            action: function (e, dt, button, config) {
+                                var data = dt.buttons.exportData();
+
+                                $.fn.dataTable.fileSave(
+                                    new Blob([JSON.stringify(data)]),
+                                    filename + '.json'
+                                );
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        $('.exportToExcelBtn').click(function () {
+            datatable.buttons('.exportExcel').trigger();
+        });
+        $('.exportToCSVBtn').click(function () {
+            datatable.buttons('.exportCSV').trigger();
+        });
+        $('.exportToJSONBtn').click(function () {
+            datatable.buttons('.exportJSON').trigger();
+        });
+
+
+    })
+</script>
+{% endblock extra_script %}

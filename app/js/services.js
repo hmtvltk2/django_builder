@@ -3,8 +3,8 @@ function TarballFactory() {
     return function () {
         function Tarball() {
             var tf = this;
-            var JSZip = require("jszip");
-            var zip = new JSZip();
+            var Tar = require('tar-js');
+            var tarfile = new Tar();
             tf.uInt8ToString = function (buf) {
                 var i, length, out = '';
                 for (i = 0, length = buf.length; i < length; i += 1) {
@@ -13,10 +13,11 @@ function TarballFactory() {
                 return out;
             };
             tf.append = function (file_name, content) {
-                zip.file(file_name, content)
+                tarfile.append(file_name, content)
             };
             tf.get_url = function (n) {
-                return zip.generateAsync({ type: "uint8array" });
+                var base64 = btoa(tf.uInt8ToString(tarfile.out));
+                return "data:application/tar;base64," + base64;
             };
         }
         return new Tarball();
@@ -47,8 +48,7 @@ function ModelRenderFactory() {
             all_output += _this.render_forms_py(app_name, models);
             all_output += _this.render_urls_py(app_name, models, django2);
             all_output += _this.render_views_py(app_name, models);
-            all_output += _this.render_models_py(app_name, models, django2);
-            all_output += _this.render_templates_html(app_name, models);
+            all_output += _this.render_templates_html(model_name, models);
             return all_output;
         };
         _this.render_base_html = function (app_name, models) {
@@ -113,87 +113,28 @@ function ModelRenderFactory() {
         };
 
         _this.render_views_py = function (app_name, models) {
-            var views_py = 'from django.views.generic import DetailView, ListView, UpdateView, CreateView\n';
+            var views_py = 'from django.shortcuts import render, get_object_or_404, redirect\n';
             views_py += 'from .models import ' + _this.model_names(models).join(', ');
             views_py += _this.new_lines(1);
             views_py += 'from .forms import ' + _this.model_names(models, 'Form').join(', ');
             views_py += _this.new_lines(2);
 
             jQuery.each(models, function (i, model) {
-                views_py += model.render_view_classes(app_name, _this);
+                views_py += model.render_view_funcs(app_name, _this);
             });
 
             return views_py;
         };
-        _this.render_models_py = function (app_name, models, django2) {
-            var models_py = '';
-            if (django2) {
-                models_py += 'from django.urls import reverse\n';
-            } else {
-                models_py += 'from django.core.urlresolvers import reverse\n';
-            }
-            models_py += 'from django_extensions.db.fields import AutoSlugField\n';
 
-            var field_imports = []
-            jQuery.each(models, function (i, model) {
-                jQuery.each(model.fields, function (i, field) {
-                    var import_field = 'from ' + field.module() + ' import ' + field.class_name() + '\n'
-                    if (field_imports.indexOf(import_field) == -1) {
-                        field_imports.push(import_field);
-                    }
-                });
-            });
-            var sorted_field_imports = field_imports.sort()
-            jQuery.each(sorted_field_imports, function (i, field_import) {
-                models_py += field_import;
-            })
-            models_py += 'from django.conf import settings\n';
-            models_py += 'from django.contrib.contenttypes.fields import GenericForeignKey\n';
-            models_py += 'from django.contrib.contenttypes.models import ContentType\n';
-            models_py += 'from django.contrib.auth import get_user_model\n';
-
-            jQuery.each(_this.pre_imported_modules(), function (_import, import_conf) {
-                var _import_split = _import.split('.');
-                var tail = _import_split.pop();
-                models_py += 'from ' + _import_split.join('.') + ' import ' + tail + ' as ' + import_conf['as'] + '\n';
-            });
-
-            var all_imports = {};
-            jQuery.each(models, function (i, model) {
-                jQuery.each(model.fields, function (i, field) {
-                    all_imports[field.module()] = field.module();
-                });
-            });
-
-            var all_fields = {};
-            jQuery.each(models, function (i, model) {
-                jQuery.each(model.fields, function (i, field) {
-                    all_fields[field.type] = field;
-                });
-                jQuery.each(model.relationships, function (i, relationship) {
-                    all_fields[relationship.type] = relationship;
-                });
-            });
-            jQuery.each(all_fields, function (i, field) {
-                //if(_this.pre_imported_modules_names().indexOf(field.module()) == -1) {
-                //    models_py += 'from ' + field.module() + ' import ' + field.class_name() + '\n';
-                //}
-            });
-            models_py += _this.new_lines(2);
-
-            jQuery.each(models, function (i, model) {
-                models_py += model.render_model_class(app_name, _this);
-            });
-
-            return models_py;
-        };
         _this.render_templates_html = function (app_name, models) {
             var templates = [];
 
             jQuery.each(models, function (i, model) {
-                templates.push([model.l_name() + '_form.html', model.render_form_html(app_name)]);
-                templates.push([model.l_name() + '_detail.html', model.render_detail_html(app_name)]);
-                templates.push([model.l_name() + '_list.html', model.render_list_html(app_name)]);
+                templates.push(['_form.html', model.render_form_html(app_name, model.name)]);
+                templates.push(['view.html', model.render_view_html(app_name, model.name)]);
+                templates.push(['index.html', model.render_index_html(app_name, model.name)]);
+                templates.push(['create.html', model.render_create_html(app_name, model.name)]);
+                templates.push(['update.html', model.render_update_html(app_name, model.name)]);
             });
 
             return templates;
@@ -559,8 +500,29 @@ function FieldFactory() {
     };
 }
 function ModelServiceFactory() {
-    return function (options, $scope) {
-        function Model(options) {
+    return function (options, $scope, http) {
+        function Model(options, http) {
+            var _this = this;
+            _this.http = http;
+            _this.form = '';
+            _this.create = '';
+            _this.update = '';
+            _this.index = '';
+            _this.view = '';
+
+            _this.http.get('app/partials/views/_form.html').then(function (e) { _this.form = e.data });
+            _this.http.get('app/partials/views/create.html').then(function (e) { _this.create = e.data });
+            _this.http.get('app/partials/views/update.html').then(function (e) { _this.update = e.data });
+            _this.http.get('app/partials/views/index.html').then(function (e) { _this.index = e.data });
+            _this.http.get('app/partials/views/view.html').then(function (e) { _this.view = e.data });
+
+            _this.replace_in_template = function (template, replacements) {
+                jQuery.each(replacements, function (i, repl) {
+                    template = template.replace(new RegExp(repl[0], 'g'), repl[1]);
+                });
+                return template;
+            };
+
             this.slugify = function (text) {
                 return text.toString()
                     .replace(/\s+/g, '')            // Replace spaces with _
@@ -691,9 +653,10 @@ function ModelServiceFactory() {
                 return urls;
             };
 
-            this.render_view_classes = function (app_name, renderer) {
+            this.render_view_funcs = function (app_name, renderer) {
                 var view_classes = renderer.new_lines(1);
-                view_classes += 'class ' + this.name + 'ListView(ListView):\n';
+                view_classes += 'def index(request):\n';
+                view_classes += renderer.spaces(4) + 'form = TramLPGSearchForm(request.GET)';
                 view_classes += renderer.spaces(4) + 'model = ' + this.name + '\n';
                 view_classes += renderer.new_lines(2);
 
@@ -799,6 +762,7 @@ function ModelServiceFactory() {
                 });
                 return cls;
             };
+
             this.render_model_class = function (app_name, renderer) {
                 var cls = this.render_model_class_header(app_name, renderer);
                 cls += this.render_model_class_fields(app_name, renderer);
@@ -833,32 +797,7 @@ function ModelServiceFactory() {
                 cls += this.render_model_class_fields(app_name, renderer);
                 return cls;
             };
-            this.render_model_api = function (app_name, renderer) {
-                var api = 'class ' + this.name + 'ViewSet(viewsets.ModelViewSet):' + renderer.new_lines(1);
-                api += renderer.spaces(4) + '"""ViewSet for the ' + this.name + ' class"""';
-                api += renderer.new_lines(2);
-                api += renderer.spaces(4) + 'queryset = models.' + this.name + '.objects.all()' + renderer.new_lines(1);
-                api += renderer.spaces(4) + 'serializer_class = serializers.' + this.name + 'Serializer' + renderer.new_lines(1);
-                api += renderer.spaces(4) + 'permission_classes = [permissions.IsAuthenticated]' + renderer.new_lines(1);
-                api += renderer.new_lines(2);
-                return api;
-            };
-            this.render_model_serializer = function (app_name, renderer) {
-                var serializer = 'class ' + this.name + 'Serializer(serializers.ModelSerializer):';
-                serializer += renderer.new_lines(2);
-                serializer += renderer.spaces(4) + 'class Meta:' + renderer.new_lines(1);
-                serializer += renderer.spaces(8) + 'model = models.' + this.name + renderer.new_lines(1);
-                serializer += renderer.spaces(8) + 'fields = (' + renderer.new_lines(1);
-                serializer += renderer.spaces(12) + '\'' + this.identifier() + '\', ' + renderer.new_lines(1);
-                var model = this;
-                jQuery.each(this.fields, function (i, field) {
-                    if (field.name != model.identifier()) {
-                        serializer += renderer.spaces(12) + '\'' + field.name + '\', ' + renderer.new_lines(1);
-                    }
-                });
-                serializer += renderer.spaces(8) + ')' + renderer.new_lines(3);
-                return serializer;
-            };
+
             this._template_header = function () {
                 return '{% extends "base.html" %}\n{% load static %}\n';
             };
@@ -869,50 +808,73 @@ function ModelServiceFactory() {
             this._wrap_block = function (block, content) {
                 return '{% block ' + block + ' %}\n' + content + '\n{% endblock %}'
             };
-            this.render_form_html = function (app_name) {
-                var form_html = this._template_header();
-                form_html += "{% load crispy_forms_tags %}\n";
-                var form = this._template_links(app_name) + '<form method="post">\n';
-                form += '{% csrf_token %}\n{{form|crispy}}\n';
-                form += '<button class="btn btn-primary" type="submit">Submit</button>\n';
-                form += '</form>';
-                form_html += this._wrap_block('content', form);
-                return form_html;
+            this.spaces = function (n) {
+                var _n = n || 1;
+                return new Array(_n + 1).join(" ");
             };
-            this.render_list_html = function (app_name) {
-                var create_url = app_name + '_' + this.l_name() + '_create';
-                var list_html = this._template_header();
-                var table_html = this._template_links(app_name) + '<table class="table">\n';
-                table_html += '<tr>\n';
-                table_html += '<td>ID<\/td><td>Link<\/td>\n';
+            this.render_form_html = function (app_name, modelName) {
+                var formColumn1 = '';
+                var formColumn2 = '';
+                var formForeign = '';
+                var _this = this;
                 jQuery.each(this.fields, function (i, field) {
-                    table_html += '    <td>' + field.name + '<\/td>\n';
+                    var line = _this.spaces(16) + '{{ form.' + field.name + '|as_crispy_field }}\n';
+                    if (i % 2 == 0) {
+                        formColumn1 += line;
+                    } else {
+                        formColumn2 += line;
+                    }
                 });
-                table_html += '<\/tr>\n';
-                table_html += '{% for object in object_list %}\n';
-                table_html += '<tr>\n';
-                table_html += '    <td>{{object.pk}}</td>\n';
-                table_html += '    <td><a href="{{object.get_absolute_url}}">{{object}}<\/a><\/td>\n';
-                jQuery.each(this.fields, function (i, field) {
-                    table_html += '    <td>{{ object.' + field.name + ' }}<\/td>\n';
-                });
-                table_html += '<\/tr>\n';
-                table_html += '{% endfor %}\n';
-                table_html += '<\/table>';
-                table_html += '<a class="btn btn-primary" href="{% url \'' + create_url + '\' %}">Create new ' + this.name + '<\/a>';
-                list_html += this._wrap_block('content', table_html);
-                return list_html;
+
+                return _this.replace_in_template(
+                    _this.form,
+                    [
+                        ['__FORM_COLUMN_1__', formColumn1],
+                        ['__FORM_COLUMN_2__', formColumn2],
+                        ['__FORM_FOREIGN__', formForeign],
+                    ]
+                )
             };
-            this.render_detail_html = function (app_name) {
-                var detail_html = this._template_header();
-                var table_html = this._template_links(app_name) + '<table class="table">\n';
-                jQuery.each(this.fields, function (i, field) {
-                    table_html += '<tr><td>' + field.name + '<\/td><td>{{ object.' + field.name + ' }}<\/td><\/tr>\n';
-                });
-                table_html += '</table>';
-                table_html += '\n<a class="btn btn-primary" href="{{object.get_update_url}}">Edit ' + this.name + '</a>\n';
-                detail_html += this._wrap_block('content', table_html);
-                return detail_html;
+            this.render_index_html = function (app_name, modelName) {
+                var modelName = '';
+                return _this.replace_in_template(
+                    _this.index,
+                    [
+                        ['__MODEL_NAME__', modelName],
+                        ['__APP_NAME__', app_name]
+                    ]
+                )
+            };
+            this.render_view_html = function (app_name, modelName) {
+                var viewBody = '';
+                var modelName = 'modelName';
+                return _this.replace_in_template(
+                    _this.view,
+                    [
+                        ['__MODEL_NAME__', modelName],
+                        ['__VIEW_BODY__', viewBody]
+                    ]
+                )
+            };
+            this.render_create_html = function (app_name, modelName) {
+                var modelName = 'modelName';
+                return _this.replace_in_template(
+                    _this.create,
+                    [
+                        ['__MODEL_NAME__', modelName],
+                        ['__APP_NAME__', app_name]
+                    ]
+                )
+            };
+            this.render_update_html = function (app_name, modelName) {
+                var modelName = 'modelName';
+                return _this.replace_in_template(
+                    _this.create,
+                    [
+                        ['__MODEL_NAME__', modelName],
+                        ['__APP_NAME__', app_name]
+                    ]
+                )
             };
             this.form_fields = function () {
                 var readable_field_names = (this.readable_fields()).map(function (field) {
@@ -943,11 +905,11 @@ function ModelServiceFactory() {
             };
 
         }
-        return new Model(options);
+        return new Model(options, http);
     };
 }
 function ModelParserFactory() {
-    return function ($scope) {
+    return function ($scope, $http) {
         function Parser() {
             this.parse = function (file, callback) {
                 var reader = new FileReader();
@@ -1022,7 +984,7 @@ function ModelParserFactory() {
                     });
                     var new_models = [];
                     jQuery.each(model_definitions, function (i, model_definition) {
-                        var model = $scope.model_factory(model_definition, $scope);
+                        var model = $scope.model_factory(model_definition, $scope, $http);
                         new_models.push(model);
                     });
 
@@ -1048,7 +1010,11 @@ function ProjectFactory() {
         _this.manage_py = '';
         _this.channels_py = '';
 
-
+        _this.http.get('app/partials/py/settings.py').then(function (e) { _this.settings_py = e.data });
+        _this.http.get('app/partials/py/manage.py').then(function (e) { _this.manage_py = e.data });
+        _this.http.get('app/partials/py/urls.py').then(function (e) { _this.urls_py = e.data });
+        _this.http.get('app/partials/py/wsgi.py').then(function (e) { _this.wsgi_py = e.data });
+        _this.http.get('app/partials/py/channels.py').then(function (e) { _this.channels_py = e.data });
 
         _this.load = function (py, project_name) {
             return _this.http.get(py).then(function (e) {
@@ -1126,14 +1092,7 @@ function ProjectFactory() {
                 ]
             );
         };
-        _this.render_project_asgi_py = function (app_name) {
-            return _this.replace_in_template(
-                _this.asgi_py,
-                [
-                    ['___APP_NAME___', app_name]
-                ]
-            );
-        };
+
     }
 }
 angular.module('builder.services', [])

@@ -13,13 +13,13 @@
             <h2 style="margin: 0">Django Version</h2>
         </div>
         <div class="col-sm-6">
-          <div class="form-group">
-              <label class="sr-only" for="builder_django_version">Django Version</label>
-              <div class="btn-group" role="group" aria-label="...">
-                <button type="button" class="ng-class: django2_class();" id="django2" ng-click="set_django_version('2.0')" >2.0</button>
-                <button type="button" class="ng-class: django1_class();" id="django1" ng-click="set_django_version('1.1')">1.11.X</button>
-              </div>
-          </div>
+            <div class="form-group">
+                <label class="sr-only" for="builder_django_version">Django Version</label>
+                <div class="btn-group" role="group" aria-label="...">
+                    <button type="button" class="ng-class: django2_class();" id="django2" ng-click="set_django_version('2.0')">2.0</button>
+                    <button type="button" class="ng-class: django1_class();" id="django1" ng-click="set_django_version('1.1')">1.11.X</button>
+                </div>
+            </div>
         </div>
     </div>
     <div class="row">
@@ -34,8 +34,10 @@
         </div>
         <div class="col-sm-8">
             <ANY ng-if="models.length">
-                <button tabindex="3" ng-click="upload_models_py()" class="btn btn-success pull-right hidden-xs" style="margin-right: 4px">Upload models.py <i class="fa fa-upload"></i></button>
-                <button tabindex="3" ng-click="upload_models_py()" class="btn btn-success pull-right visible-xs" style="margin-right: 4px"><i class="fa fa-upload"></i></button>
+                <button tabindex="3" ng-click="upload_models_py()" class="btn btn-success pull-right hidden-xs" style="margin-right: 4px">Upload
+                    models.py <i class="fa fa-upload"></i></button>
+                <button tabindex="3" ng-click="upload_models_py()" class="btn btn-success pull-right visible-xs" style="margin-right: 4px"><i
+                        class="fa fa-upload"></i></button>
             </ANY>
         </div>
     </div>
@@ -45,14 +47,16 @@
         </div>
         <div class="col-sm-10">
             <ANY ng-if="models.length">
-                <button tabindex="4" ng-click="clearModels()" class="btn btn-danger pull-right hidden-xs">Clear all <i class="fa fa-times"></i></button>
-                <button tabindex="3" ng-click="create_download_modal_app()" id="django_builder_download_as_app" class="btn btn-info pull-right hidden-xs" style="margin-right: 4px">Download as App <i class="fa fa-download"></i></button>
-                <button tabindex="3" ng-click="create_download_modal_project()" id="django_builder_download_as_project" class="btn btn-info pull-right hidden-xs" style="margin-right: 4px">Download as Project <i class="fa fa-download"></i></button>
+                <button tabindex="4" ng-click="clearModels()" class="btn btn-danger pull-right hidden-xs">Clear all <i
+                        class="fa fa-times"></i></button>
+                <button tabindex="3" ng-click="create_download_modal_app()" id="django_builder_download_as_app" class="btn btn-info pull-right hidden-xs"
+                    style="margin-right: 4px">Download <i class="fa fa-download"></i></button>
                 <button tabindex="4" ng-click="clearModels()" class="btn btn-danger pull-right visible-xs"><i class="fa fa-times"></i></button>
-                <button tabindex="3" ng-click="create_download_modal_app()" class="btn btn-info pull-right visible-xs" style="margin-right: 4px"><i class="fa fa-download"></i></button>
-                <button tabindex="3" ng-click="create_download_modal_project()" class="btn btn-info pull-right visible-xs" style="margin-right: 4px"><i class="fa fa-download"></i></button>
+                <button tabindex="3" ng-click="create_download_modal_app()" class="btn btn-info pull-right visible-xs"
+                    style="margin-right: 4px"><i class="fa fa-download"></i></button>
             </ANY>
-            <button id="django_builder_add_model" tabindex="2" ng-click="addModel()" class="btn btn-primary hidden-xs" analytics-on="click" analytics-category="Models" analytics-event="AddModel">Add Model <i class="fa fa-plus"></i></button>
+            <button id="django_builder_add_model" tabindex="2" ng-click="addModel()" class="btn btn-primary hidden-xs"
+                analytics-on="click" analytics-category="Models" analytics-event="AddModel">Add Model <i class="fa fa-plus"></i></button>
             <button tabindex="2" ng-click="addModel()" class="btn btn-primary visible-xs"><i class="fa fa-plus"></i></button>
         </div>
     </div>

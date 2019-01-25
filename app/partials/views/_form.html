@@ -1,0 +1,48 @@
+{% load crispy_forms_tags %}
+<style>
+    .asteriskField{
+        padding: .3125rem;
+        color: #f44336;
+    }
+
+    .form-group label{
+        font-weight: 500
+    }
+</style>
+<form method="post">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-6">
+            <fieldset>
+                __FORM_COLUMN_1__
+            </fieldset>
+
+        </div>
+
+        <div class="col-6">
+            <fieldset>
+                __FORM_COLUMN_2__
+            </fieldset>
+        </div>
+    </div>
+    __FORM_FOREIGN__
+
+    <div class="text-right">
+        <button type="submit" class="btn bg-primary btn-labeled btn-labeled-right legitRipple mr-1">
+            <b><i class="icon-floppy-disk"></i></b>
+            Lưu
+        </button>
+
+        {% if isNew %}
+        <button type="submit" name="save-and-continue" class="btn bg-success btn-labeled btn-labeled-right legitRipple mr-1">
+            <b><i class="icon-floppy-disk"></i></b>
+            Lưu và tiếp tục
+        </button>
+        {% endif %}
+
+        <a href="{% url 'index' %}" class="btn bg-warning btn-labeled btn-labeled-right legitRipple mr-1">
+            <b><i class="icon-cancel-square"></i></b>
+            Hủy bỏ
+        </a>
+    </div>
+</form>
