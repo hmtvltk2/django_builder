@@ -928,6 +928,8 @@ function ModelParserFactory() {
                         line = line.trim();
                         var model_match = model_regex.exec(line);
                         if (model_match && model_match[2].match(/model/i)) {
+                            indexOfName = lines[i + 1].indexOf('# ');
+                            current_model.name = lines[i + 1].slice(indexOfName);
                             current_model = {
                                 'name': model_match[1],
                                 'class': model_match[2],
