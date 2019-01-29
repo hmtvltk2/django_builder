@@ -16,7 +16,7 @@ Cập Nhật __MODEL_NAME__
 {% block breadcrumb %}
 <div class="breadcrumb">
     <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang Chủ</a>
-    <a href="#" class="breadcrumb-item">__MODEL_NAME__</a>
+    <a href="{% url '__URL_PREFIX__.view' %}" class="breadcrumb-item">__MODEL_NAME__</a>
     <span class="breadcrumb-item active">Cập Nhật</span>
 </div>
 {% endblock %}

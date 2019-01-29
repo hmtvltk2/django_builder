@@ -126,6 +126,19 @@
 
                 </div>
             </div>
+            <div class="col-md-6" id="admins_py">
+                <h4>{{ app_name()|lowercase }}/admins.py</h4>
+                <div id="builder_admins" ui-ace="{
+                  useWrapMode : true,
+                  showGutter: false,
+                  theme:'dawn',
+                  mode: 'python',
+                  onLoad: aceLoaded,
+                  onChange: aceChanged
+                }">
+
+                </div>
+            </div>
         </div>
         <div class="row">
             <div class="col-md-12" id="templates_html">

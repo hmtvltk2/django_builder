@@ -16,7 +16,7 @@ Thông Tin Chi Tiết __MODEL_NAME__
 {% block breadcrumb %}
 <div class="breadcrumb">
     <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang chủ</a>
-    <a href="{% url 'index' %}" class="breadcrumb-item">__MODEL_NAME__</a>
+    <a href="{% url '__URL_PREFIX__.index' %}" class="breadcrumb-item">__MODEL_NAME__</a>
     <span class="breadcrumb-item active">Thông Tin Chi Tiết</span>
 </div>
 {% endblock %}
@@ -26,10 +26,14 @@ Thông Tin Chi Tiết __MODEL_NAME__
     <div class="card-header header-elements-inline">
         <h5 class="card-title">Thông Tin Chi Tiết __MODEL_NAME__</h5>
         <div class="header-elements">
-            <a class="btn bg-teal-400 btn-sm btn-labeled btn-labeled-right legitRipple mr-1" href="{% url 'update' model.id %}">Sửa
-                <b><i class="icon-pencil7"></i></b></a>
-            <a class="btn-delete btn bg-danger btn-sm btn-labeled btn-labeled-right legitRipple" href="{% url 'delete' model.id %}">Xóa
-                <b><i class="icon-trash"></i></b></a>
+            <a class="btn bg-teal-400 btn-sm btn-labeled btn-labeled-right legitRipple mr-1" href="{% url '__URL_PREFIX__.update' model.id %}">
+                Sửa
+                <b><i class="icon-pencil7"></i></b>
+            </a>
+            <a class="btn-delete btn bg-danger btn-sm btn-labeled btn-labeled-right legitRipple" href="{% url '__URL_PREFIX__.delete' model.id %}">
+                Xóa
+                <b><i class="icon-trash"></i></b>
+            </a>
         </div>
     </div>
 

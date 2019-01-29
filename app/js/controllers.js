@@ -1,9 +1,9 @@
 /* Controllers */
 
 angular.module('builder.controllers', ['LocalStorageModule'])
-    .controller('ModelController', ['$scope', '$http', 'ModelFactory', 'ModelParser', 'FieldFactory',
+    .controller('ModelController', ['$scope', '$http', 'ProjectFactory', 'ModelFactory', 'ModelParser', 'FieldFactory',
         'RelationshipFactory', 'localStorageService', 'MessageService', 'RenderFactory', 'TarballFactory',
-        function ($scope, $http, model_factory, ModelParser, field_factory,
+        function ($scope, $http, project_factory, model_factory, ModelParser, field_factory,
             relationship_factory, localStorageService, message_service, renderFactory, tarballFactory) {
             $scope.models = [];
             $scope.new_models = [];
@@ -30,6 +30,7 @@ angular.module('builder.controllers', ['LocalStorageModule'])
             $scope.field_factory = new field_factory();
             $scope.model_factory = model_factory;
             $scope.relationship_factory = new relationship_factory();
+            $scope.project_factory = new project_factory($http);
             $scope.render_factory = new renderFactory($scope.built_in_models);
             $scope.editors = [];
             $scope.models_storage_key = 'local_models';
@@ -45,7 +46,7 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 const app_name = $scope.app_name();
 
                 var views = $scope.render_factory.render_views_py(app_name, $scope.models);
-
+                var admins = $scope.render_factory.render_admins_py(app_name, $scope.models);
                 var urls = $scope.render_factory.render_urls_py(app_name, $scope.models, $scope.django2());
 
                 var forms = $scope.render_factory.render_forms_py(app_name, $scope.models);
@@ -70,8 +71,9 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                 tarfile.append(root_folder + '/__init__.py', __init__);
                 tarfile.append(root_folder + '/views.py', views);
                 tarfile.append(root_folder + '/urls.py', urls);
+                tarfile.append(root_folder + '/admins.py', admins);
                 tarfile.append(root_folder + '/forms.py', forms);
-                tarfile.append(root_folder + '/templates/base.html', $scope.render_factory.render_base_html(app_name, $scope.models));
+                tarfile.append(root_folder + '/templates/base.html', $scope.project_factory.project_base_html);
 
                 jQuery.each(templates, function (i, template) {
                     tarfile.append(root_folder + '/templates/' + app_name + '/' + template[0], template[1]);
@@ -81,12 +83,13 @@ angular.module('builder.controllers', ['LocalStorageModule'])
 
                 return Promise.all(promises).then(function () {
                     return tarfile.get_url();
+
                 })
             };
             $scope.create_download_modal_app = function () {
-                var filename = $scope.app_name() + '.tar';
+                var filename = $scope.app_name() + '.zip';
                 var identifier = 'django_builder_download_app_modal';
-                return $scope.create_download_modal(false, false, filename, identifier);
+                return $scope.create_download_modal(false, filename, identifier);
             };
 
             $scope.create_download_modal = function (include_project, filename, identifier, extra_message) {
@@ -300,11 +303,15 @@ angular.module('builder.controllers', ['LocalStorageModule'])
 
                 switch (_id) {
                     case "builder_views":
-                        set_editor_value($scope.render_factory.render_views_py($scope.app_name(), $scope.models));
+                        set_editor_value($scope.render_factory.render_views_py($scope.app_name(), $scope.models, $scope.django2()));
                         break;
 
                     case "builder_urls":
                         set_editor_value($scope.render_factory.render_urls_py($scope.app_name(), $scope.models, $scope.django2()));
+                        break;
+
+                    case 'builder_admins':
+                        set_editor_value($scope.render_factory.render_admins_py($scope.app_name(), $scope.models));
                         break;
 
                     case "builder_forms":

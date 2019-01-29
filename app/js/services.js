@@ -1,23 +1,27 @@
+
 /* Services */
+
 function TarballFactory() {
     return function () {
         function Tarball() {
             var tf = this;
-            var Tar = require('tar-js');
-            var tarfile = new Tar();
-            tf.uInt8ToString = function (buf) {
-                var i, length, out = '';
-                for (i = 0, length = buf.length; i < length; i += 1) {
-                    out += String.fromCharCode(buf[i]);
-                }
-                return out;
-            };
+            // var JSZip = require("jszip");
+            var zip = new JSZip();;
             tf.append = function (file_name, content) {
-                tarfile.append(file_name, content)
+                zip.file(file_name, content)
             };
             tf.get_url = function (n) {
-                var base64 = btoa(tf.uInt8ToString(tarfile.out));
-                return "data:application/tar;base64," + base64;
+                return new Promise(function (resole, reject) {
+                    zip.generateAsync({ type: "base64" }).then(function (base64) {
+                        console.log('get_url');
+                        // saveAs(base64, "hello.zip");
+
+                        resole("data:application/zip;base64," + base64);
+                    }, function (err) {
+                        console.log('Something wrong!!!');
+                    });
+                });
+
             };
         }
         return new Tarball();
@@ -41,13 +45,17 @@ function ModelRenderFactory() {
             var _n = n || 1;
             return new Array(_n + 1).join("\n");
         };
+        _this.unicode = function (django2) {
+            return django2 ? '' : '# -*- coding: utf-8 -*-\n';
+        }
         _this.render_all = function (app_name, models, django2) {
             // Primary used for testing
             var all_output = '';
             all_output += _this.render_base_html(app_name, models);
-            all_output += _this.render_forms_py(app_name, models);
+            all_output += _this.render_forms_py(app_name, models, django2);
             all_output += _this.render_urls_py(app_name, models, django2);
-            all_output += _this.render_views_py(app_name, models);
+            all_output += _this.render_admin_py(app_name, models);
+            all_output += _this.render_views_py(app_name, models, django2);
             all_output += _this.render_templates_html(model_name, models);
             return all_output;
         };
@@ -66,16 +74,26 @@ function ModelRenderFactory() {
             return Object.keys(_this.pre_imported_modules());
         };
         _this.render_forms_py = function (app_name, models) {
-            var tests_py = 'from django import forms\n';
-
-            tests_py += 'from .models import ' + _this.model_names(models, '').join(', ') + '\n';
-            tests_py += _this.new_lines(2);
+            var forms_py = 'from django import forms\n';
+            forms_py += 'from django.db import models\n';
+            forms_py += 'from django.forms import modelform_factory\n';
+            forms_py += 'from bootstrap_datepicker_plus import DatePickerInput\n';
+            forms_py += 'from .models import ' + _this.model_names(models, '').join(', ') + '\n';
+            forms_py += _this.new_lines(2);
+            forms_py += 'def set_widget(f):\n';
+            forms_py += _this.spaces(4) + 'if isinstance(f, models.DateField):\n';
+            forms_py += _this.spaces(8) + 'formfield = f.formfield()\n';
+            forms_py += _this.spaces(8) + 'formfield.widget = DatePickerInput(options={"format": "DD/MM/YYYY"})\n';
+            forms_py += _this.spaces(8) + 'return formfield\n';
+            forms_py += _this.spaces(4) + 'else:\n';
+            forms_py += _this.spaces(8) + 'return f.formfield()\n';
+            forms_py += _this.new_lines(2);
 
             jQuery.each(models, function (i, model) {
-                tests_py += model.render_forms(app_name, _this);
+                forms_py += model.render_forms(app_name, _this);
             });
 
-            return tests_py;
+            return forms_py;
         };
 
         _this.render_urls_py = function (app_name, models, django2) {
@@ -86,24 +104,8 @@ function ModelRenderFactory() {
             } else {
                 urls_py += 'from django.conf.urls import url, include\n';
             }
-            urls_py += 'from rest_framework import routers' + _this.new_lines(2);
-            urls_py += 'from . import api' + _this.new_lines(1);
             urls_py += 'from . import views' + _this.new_lines(2);
 
-            urls_py += 'router = routers.DefaultRouter()' + _this.new_lines(1);
-            jQuery.each(models, function (i, model) {
-                urls_py += 'router.register(r\'' + model.l_name() + '\', api.' + model.name + 'ViewSet)' + _this.new_lines(1);
-            });
-            urls_py += _this.new_lines(2);
-            urls_py += 'urlpatterns = (' + _this.new_lines(1);
-            urls_py += _this.spaces(4) + '# urls for Django Rest Framework API' + _this.new_lines(1);
-            if (django2) {
-                urls_py += _this.spaces(4) + path_import + '(\'api/v1/\', include(router.urls)),' + _this.new_lines(1);
-            } else {
-                urls_py += _this.spaces(4) + path_import + '(r\'^api/v1/\', include(router.urls)),' + _this.new_lines(1);
-            }
-            urls_py += ')' + _this.new_lines(1);
-            urls_py += _this.new_lines(1);
 
             jQuery.each(models, function (i, model) {
                 urls_py += model.render_urls(app_name, _this, django2);
@@ -112,15 +114,31 @@ function ModelRenderFactory() {
             return urls_py;
         };
 
-        _this.render_views_py = function (app_name, models) {
-            var views_py = 'from django.shortcuts import render, get_object_or_404, redirect\n';
-            views_py += 'from .models import ' + _this.model_names(models).join(', ');
+        _this.render_views_py = function (app_name, models, django2) {
+            var views_py = _this.unicode(django2);
+            views_py += 'from django.contrib import messages\n';
+            views_py += 'from django.contrib.auth.decorators import login_required\n';
+            views_py += 'from django.shortcuts import render, get_object_or_404, redirect\n';
             views_py += _this.new_lines(1);
-            views_py += 'from .forms import ' + _this.model_names(models, 'Form').join(', ');
+            views_py += 'from .models import ' + _this.model_names(models).join(', ') + '\n';
+            views_py += 'from .forms import ' + _this.model_names(models, 'Form').join(', ') + ','
+                + _this.model_names(models, 'SearchForm').join(', ');
             views_py += _this.new_lines(2);
 
             jQuery.each(models, function (i, model) {
-                views_py += model.render_view_funcs(app_name, _this);
+                views_py += model.render_view_funcs(app_name, model, _this);
+            });
+
+            return views_py;
+        };
+
+        _this.render_admins_py = function (app_name, models) {
+            var views_py = 'from django.contrib import admin\n';
+            views_py += 'from .models import ' + _this.model_names(models).join(', ');
+            views_py += _this.new_lines(2);
+
+            jQuery.each(models, function (i, model) {
+                views_py += 'admin.site.register(' + model.name + ')\n';
             });
 
             return views_py;
@@ -128,13 +146,15 @@ function ModelRenderFactory() {
 
         _this.render_templates_html = function (app_name, models) {
             var templates = [];
+            templates.push(['base.html', models[0].render_base_html()]);
 
             jQuery.each(models, function (i, model) {
-                templates.push(['_form.html', model.render_form_html(app_name, model.name)]);
-                templates.push(['view.html', model.render_view_html(app_name, model.name)]);
-                templates.push(['index.html', model.render_index_html(app_name, model.name)]);
-                templates.push(['create.html', model.render_create_html(app_name, model.name)]);
-                templates.push(['update.html', model.render_update_html(app_name, model.name)]);
+                templates.push([model.l_name() + '_form.html', model.render_form_html(app_name)]);
+                templates.push([model.l_name() + '_view.html', model.render_view_html(app_name)]);
+                templates.push([model.l_name() + '_index.html', model.render_index_html(app_name)]);
+                templates.push([model.l_name() + '_create.html', model.render_create_html(app_name)]);
+                templates.push([model.l_name() + '_update.html', model.render_update_html(app_name)]);
+
             });
 
             return templates;
@@ -328,7 +348,13 @@ function RelationshipFactory() {
             this.type = options['type'];
             this.opts = options['opts'];
             this.to = options['to'];
+
             this.external_app = options['external_app'] || false;
+            this.extractFirst = function (str) {
+                var matches = str.match(/["'](.*?)["']/);
+                return matches ? matches[1] : null;
+            };
+            this.verboseName = this.extractFirst(this.opts) || this.name;
             this.class_name = function () {
                 return this.type.split('.').reverse()[0]
             };
@@ -451,6 +477,11 @@ function FieldFactory() {
             this.name = options['name'];
             this.type = options['type'];
             this.opts = options['opts'] || '';
+            this.extractFirst = function (str) {
+                var matches = str.match(/["'](.*?)["']/);
+                return matches ? matches[1] : null;
+            };
+            this.verboseName = this.extractFirst(this.opts) || this.name;
             this.class_name = function () {
                 return this.type.split('.').reverse()[0]
             };
@@ -509,12 +540,15 @@ function ModelServiceFactory() {
             _this.update = '';
             _this.index = '';
             _this.view = '';
+            _this.base = '';
 
             _this.http.get('app/partials/views/_form.html').then(function (e) { _this.form = e.data });
             _this.http.get('app/partials/views/create.html').then(function (e) { _this.create = e.data });
             _this.http.get('app/partials/views/update.html').then(function (e) { _this.update = e.data });
             _this.http.get('app/partials/views/index.html').then(function (e) { _this.index = e.data });
             _this.http.get('app/partials/views/view.html').then(function (e) { _this.view = e.data });
+            _this.http.get('app/partials/views/base.html').then(function (e) { _this.base = e.data });
+
 
             _this.replace_in_template = function (template, replacements) {
                 jQuery.each(replacements, function (i, repl) {
@@ -535,8 +569,8 @@ function ModelServiceFactory() {
                 this.name = this.slugify(raw_name);
             };
             this.set_name(options['name']);
+            this.displayName = options['displayName'];
             this.fields = [];
-            var fields = options['fields'] || [];
             this.fields = (options['fields'] || []).map($scope.field_factory.make_field);
             this.relationships = (options['relationships'] || []).map($scope.relationship_factory.make_relationship);
             this.relationship_names = function () {
@@ -582,7 +616,7 @@ function ModelServiceFactory() {
                 if (this.field_names().indexOf('slug') != -1) {
                     return 'slug';
                 } else {
-                    return 'pk';
+                    return 'id';
                 }
             };
             this.identifier_is_slug = function () {
@@ -594,17 +628,43 @@ function ModelServiceFactory() {
                 }
             };
             this.render_forms = function (app_name, renderer) {
-                var urls = '';
+                var form = '';
 
-                urls += 'class ' + this.name + 'Form(forms.ModelForm):\n';
-                urls += renderer.spaces(4) + 'class Meta:\n';
-                urls += renderer.spaces(8) + 'model = ' + this.name + '\n';
-                if (this.form_fields()) {
-                    urls += renderer.spaces(8) + 'fields = ' + this.form_fields() + '\n';
-                }
-                urls += renderer.new_lines(2);
+                form += 'class ' + _this.name + 'SearchForm(forms.Form):\n';
+                jQuery.each(_this.fields, function (i, field) {
+                    form += renderer.spaces(4) + field.name + ' = forms.' + field.type + '(\n';
+                    form += renderer.spaces(8) + "label='" + field.verboseName + "',\n";
+                    form += renderer.spaces(8) + 'required=False,\n';
+                    form += renderer.spaces(4) + ')\n';
+                    form += renderer.new_lines(1);
+                });
 
-                return urls;
+                jQuery.each(_this.relationships, function (i, relationship) {
+                    form += renderer.spaces(4) + relationship.name + ' = forms.ModelChoiceField(\n';
+                    form += renderer.spaces(8) + "label='" + relationship.verboseName + "',\n";
+                    form += renderer.spaces(8) + 'queryset=' + relationship.to + '.objects.all(),\n';
+                    form += renderer.spaces(8) + 'required=False,\n';
+                    form += renderer.spaces(8) + "empty_label='Tất cả',\n";
+                    form += renderer.spaces(4) + ')\n';
+                    form += renderer.new_lines(1);
+                });
+
+                form += renderer.new_lines(2);
+                form += _this.name + 'Form = modelform_factory(\n';
+                form += renderer.spaces(4) + _this.name + ',\n';
+                form += renderer.spaces(4) + 'fields=(\n';
+                jQuery.each(_this.fields, function (i, field) {
+                    form += renderer.spaces(8) + "'" + field.name + "',\n";
+                });
+                jQuery.each(_this.relationships, function (i, relationship) {
+                    form += renderer.spaces(8) + "'" + relationship.name + "',\n";
+                });
+                form += renderer.spaces(4) + '),\n';
+                form += renderer.spaces(4) + 'formfield_callback=set_widget\n';
+                form += ')\n';
+                form += renderer.new_lines(2);
+
+                return form;
             };
             this.get_initial_data = function (app_name, renderer) {
                 var initial = '{';
@@ -627,24 +687,33 @@ function ModelServiceFactory() {
 
                 urls += 'urlpatterns += (\n';
                 urls += renderer.spaces(4) + '# urls for ' + this.name + '\n';
+                var namePrefix = app_name + '.' + this.l_name();
+                var indexUrl = "views." + this.l_name() + "_index, name='" + namePrefix + ".index'),\n";
+                var createUrl = "views." + this.l_name() + "_create, name='" + namePrefix + ".create'),\n";
+                var updateUrl = "views." + this.l_name() + "_update, name='" + namePrefix + ".update'),\n";
+                var viewUrl = "views." + this.l_name() + "_view, name='" + namePrefix + ".view'),\n";
+                var deleteUrl = "views." + this.l_name() + "_delete, name='" + namePrefix + ".delete'),\n";
 
                 if (django2) {
-                    var prefix = renderer.spaces(4) + path_import + '(\'' + app_name + '/' + this.l_name();
+                    var prefix = renderer.spaces(4) + path_import + '(\'' + this.l_name();
                     if (this.identifier_is_slug()) {
                         var url_identifier = '<slug:' + this.identifier() + '>'
                     } else {
                         var url_identifier = '<int:' + this.identifier() + '>'
                     }
-                    urls += prefix + '/\', views.' + this.name + 'ListView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_list\'),\n';
-                    urls += prefix + '/create/\', views.' + this.name + 'CreateView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_create\'),\n';
-                    urls += prefix + '/detail/' + url_identifier + '/\', views.' + this.name + 'DetailView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_detail\'),\n';
-                    urls += prefix + '/update/' + url_identifier + '/\', views.' + this.name + 'UpdateView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_update\'),\n';
+
+                    urls += prefix + "/'," + indexUrl;
+                    urls += prefix + '/create/\',' + createUrl;
+                    urls += prefix + '/update/' + url_identifier + "'," + updateUrl;
+                    urls += prefix + '/view/' + url_identifier + "'," + viewUrl;
+                    urls += prefix + '/delete/' + url_identifier + "'," + deleteUrl;
                 } else {
-                    var prefix = renderer.spaces(4) + path_import + '(r\'^' + app_name + '/' + this.l_name();
-                    urls += prefix + '/$\', views.' + this.name + 'ListView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_list\'),\n';
-                    urls += prefix + '/create/$\', views.' + this.name + 'CreateView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_create\'),\n';
-                    urls += prefix + '/detail/(?P<' + this.identifier() + '>\\S+)/$\', views.' + this.name + 'DetailView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_detail\'),\n';
-                    urls += prefix + '/update/(?P<' + this.identifier() + '>\\S+)/$\', views.' + this.name + 'UpdateView.as_view(), name=\'' + app_name + '_' + this.l_name() + '_update\'),\n';
+                    var prefix = renderer.spaces(4) + path_import + '(r\'^' + this.l_name();
+                    urls += prefix + '/$\', ' + indexUrl;
+                    urls += prefix + '/create/$\',' + createUrl;
+                    urls += prefix + '/update/(?P<' + this.identifier() + '>\\S+)/$\',' + updateUrl;
+                    urls += prefix + '/view/(?P<' + this.identifier() + '>\\S+)/$\',' + viewUrl;
+                    urls += prefix + '/delete/(?P<' + this.identifier() + '>\\S+)/$\',' + deleteUrl;
                 }
 
                 urls += ')\n';
@@ -653,26 +722,72 @@ function ModelServiceFactory() {
                 return urls;
             };
 
-            this.render_view_funcs = function (app_name, renderer) {
-                var view_classes = renderer.new_lines(1);
-                view_classes += 'def index(request):\n';
-                view_classes += renderer.spaces(4) + 'form = TramLPGSearchForm(request.GET)';
-                view_classes += renderer.spaces(4) + 'model = ' + this.name + '\n';
+            this.render_view_funcs = function (app_name, model, renderer) {
+                var templatePrefix = app_name + "/" + model.l_name() + '_';
+                var view_classes = renderer.new_lines(2);
+                var urlPrefix = app_name + '.' + model.l_name() + '.';
+                // index
+                view_classes += '@login_required\n';
+                view_classes += 'def ' + model.l_name() + '_index(request):\n';
+                view_classes += renderer.spaces(4) + 'form = ' + model.name + 'SearchForm(request.GET)\n';
+                view_classes += renderer.spaces(4) + 'models = form.search()\n';
+                view_classes += renderer.spaces(4) + 'context = {\n';
+                view_classes += renderer.spaces(8) + "'models': models,\n";
+                view_classes += renderer.spaces(8) + "'form': form\n";
+                view_classes += renderer.spaces(4) + '}\n';
+                view_classes += renderer.spaces(4) + "return render(request, '" + templatePrefix + "index.html', context)";
                 view_classes += renderer.new_lines(2);
 
-                view_classes += 'class ' + this.name + 'CreateView(CreateView):\n';
-                view_classes += renderer.spaces(4) + 'model = ' + this.name + '\n';
-                view_classes += renderer.spaces(4) + 'form_class = ' + this.name + 'Form\n';
+                // view
+                view_classes += '@login_required\n';
+                view_classes += 'def ' + model.l_name() + '_view(request, id):\n';
+                view_classes += renderer.spaces(4) + 'model = get_object_or_404(' + model.name + ', pk=id)\n';
+                view_classes += renderer.spaces(4) + "return render(request, '" + templatePrefix + "view.html', {'model': model})\n";
                 view_classes += renderer.new_lines(2);
 
-                view_classes += 'class ' + this.name + 'DetailView(DetailView):\n';
-                view_classes += renderer.spaces(4) + 'model = ' + this.name + '\n';
+                //delete 
+                view_classes += '@login_required\n';
+                view_classes += 'def ' + model.l_name() + '_delete(request, id):\n';
+                view_classes += renderer.spaces(4) + 'model = get_object_or_404(' + model.name + ', pk=id)\n';
+                view_classes += renderer.spaces(4) + 'model.delete()\n';
+                view_classes += renderer.spaces(4) + "messages.success(request, 'Xóa thành công!')\n";
+                view_classes += renderer.spaces(4) + "return redirect('" + urlPrefix + "index')";
                 view_classes += renderer.new_lines(2);
 
-                view_classes += 'class ' + this.name + 'UpdateView(UpdateView):\n';
-                view_classes += renderer.spaces(4) + 'model = ' + this.name + '\n';
-                view_classes += renderer.spaces(4) + 'form_class = ' + this.name + 'Form';
+                //create
+                view_classes += '@login_required\n';
+                view_classes += 'def ' + model.l_name() + '_create(request):\n';
+                view_classes += renderer.spaces(4) + 'form = ' + model.name + 'Form(request.POST or None)\n';
+                view_classes += renderer.spaces(4) + 'if form.is_valid():\n';
+                view_classes += renderer.spaces(8) + model.name + '.created_by = request.user\n';
+                view_classes += renderer.spaces(8) + "messages.success(request, 'Thêm mới thành công!')\n";
+                view_classes += renderer.spaces(8) + "if 'save-and-continue' in request.POST:\n";
+                view_classes += renderer.spaces(12) + "return redirect('" + urlPrefix + "create')\n";
+                view_classes += renderer.spaces(8) + 'else:\n';
+                view_classes += renderer.spaces(12) + "return redirect('" + urlPrefix + "view', model.id)\n";
+                view_classes += renderer.new_lines(1);
+                view_classes += renderer.spaces(4) + 'context = {\n';
+                view_classes += renderer.spaces(8) + "'form': form,\n";
+                view_classes += renderer.spaces(8) + "'post': request.POST\n";
+                view_classes += renderer.spaces(4) + '}\n';
+                view_classes += renderer.spaces(4) + "return render(request, '" + templatePrefix + "create.html', context)\n";
                 view_classes += renderer.new_lines(2);
+
+                //update
+                view_classes += '@login_required\n';
+                view_classes += 'def ' + model.l_name() + '_update(request, id):\n';
+                view_classes += renderer.spaces(4) + 'model = get_object_or_404(' + model.name + ', pk=id)\n';
+                view_classes += renderer.spaces(4) + 'form = ' + model.name + 'Form(request.POST or None, instance=model)\n';
+                view_classes += renderer.spaces(4) + 'if form.is_valid():\n';
+                view_classes += renderer.spaces(8) + model.name + '.updated_by = request.user\n';
+                view_classes += renderer.spaces(8) + 'form.save()\n';
+                view_classes += renderer.spaces(8) + "messages.success(request, 'Cập nhật thành công!')\n";
+                view_classes += renderer.spaces(8) + "return redirect('" + urlPrefix + "view', model.id)\n";
+                view_classes += renderer.new_lines(1);
+                view_classes += renderer.spaces(4) + 'context = {\n';
+                view_classes += renderer.spaces(8) + "'form': form\n";
+                view_classes += renderer.spaces(4) + '}\n';
+                view_classes += renderer.spaces(4) + "return render(request, '" + templatePrefix + "update.html', context)\n";
 
                 return view_classes;
             };
@@ -812,10 +927,9 @@ function ModelServiceFactory() {
                 var _n = n || 1;
                 return new Array(_n + 1).join(" ");
             };
-            this.render_form_html = function (app_name, modelName) {
+            this.render_form_html = function (app_name) {
                 var formColumn1 = '';
                 var formColumn2 = '';
-                var formForeign = '';
                 var _this = this;
                 jQuery.each(this.fields, function (i, field) {
                     var line = _this.spaces(16) + '{{ form.' + field.name + '|as_crispy_field }}\n';
@@ -831,51 +945,109 @@ function ModelServiceFactory() {
                     [
                         ['__FORM_COLUMN_1__', formColumn1],
                         ['__FORM_COLUMN_2__', formColumn2],
-                        ['__FORM_FOREIGN__', formForeign],
                     ]
                 )
             };
-            this.render_index_html = function (app_name, modelName) {
-                var modelName = '';
+            this.render_index_html = function (app_name) {
+                var urlPrefix = app_name + '.' + this.l_name();
+                var searchColumn1 = '';
+                var searchColumn2 = '';
+                var indexHeader = '';
+                var indexBody = '';
+
+                jQuery.each(this.fields, function (i, field) {
+                    indexHeader += _this.spaces(12) + '<th>' + field.verboseName + '</th>\n';
+                    indexBody += _this.spaces(16) + '<td>{{model.' + field.name + '}}</td>\n';
+
+                    var line = _this.spaces(16) + '{{ form.' + field.name + '|as_crispy_field }}\n';
+                    if (i % 2 == 0) {
+                        searchColumn1 += line;
+                    } else {
+                        searchColumn2 += line;
+                    }
+                });
+
                 return _this.replace_in_template(
                     _this.index,
                     [
-                        ['__MODEL_NAME__', modelName],
-                        ['__APP_NAME__', app_name]
+                        ['__MODEL_NAME__', this.displayName],
+                        ['__INDEX_HEADER__', indexHeader],
+                        ['__INDEX_BODY__', indexBody],
+                        ['__SEARCH_COLUMN_1__', searchColumn1],
+                        ['__SEARCH_COLUMN_2__', searchColumn2],
+                        ['__URL_PREFIX__', urlPrefix]
                     ]
                 )
             };
-            this.render_view_html = function (app_name, modelName) {
+            this.render_view_field = function (field) {
+                var row = _this.spaces(16) + '<th>' + field.verboseName + '</th>\n';
+                row += _this.spaces(16) + '<td>{{model.' + field.name + '}}</td>\n';
+                return row;
+            };
+            this.render_view_html = function (app_name) {
+                var urlPrefix = app_name + '.' + this.l_name();
                 var viewBody = '';
-                var modelName = 'modelName';
+
+                for (var i = 0; i < this.fields.length; i += 2) {
+                    viewBody += _this.spaces(12) + '<tr>\n';
+                    viewBody += this.render_view_field(this.fields[i]);
+
+                    if (i + 1 < this.fields.length) {
+                        viewBody += this.render_view_field(this.fields[i + 1]);
+                    }
+
+                    viewBody += _this.spaces(12) + '</tr>\n';
+                }
+
+                jQuery.each(this.relationships, function (i, relationship) {
+                    viewBody += _this.spaces(12) + '<tr>\n';
+                    viewBody += _this.spaces(16) + '<th>' + relationship.verboseName + '</th>\n';
+                    viewBody += _this.spaces(16) + '<td colspan="3">\n';
+                    viewBody += _this.spaces(20) + '<ol class="pl-2">\n';
+                    viewBody += _this.spaces(24) + '{% for item in model.' + relationship.name + '.all %}\n';
+                    viewBody += _this.spaces(24) + '<li>{{item}}</li>\n';
+                    viewBody += _this.spaces(24) + '{% endfor %}\n';
+                    viewBody += _this.spaces(12) + '</tr>\n';
+                });
+
                 return _this.replace_in_template(
                     _this.view,
                     [
-                        ['__MODEL_NAME__', modelName],
-                        ['__VIEW_BODY__', viewBody]
+                        ['__MODEL_NAME__', this.displayName],
+                        ['__VIEW_BODY__', viewBody],
+                        ['__URL_PREFIX__', urlPrefix]
                     ]
                 )
             };
-            this.render_create_html = function (app_name, modelName) {
-                var modelName = 'modelName';
+            this.render_create_html = function (app_name) {
+                var urlPrefix = app_name + '.' + this.l_name();
+
                 return _this.replace_in_template(
                     _this.create,
                     [
-                        ['__MODEL_NAME__', modelName],
-                        ['__APP_NAME__', app_name]
+                        ['__MODEL_NAME__', this.displayName],
+                        ['__APP_NAME__', app_name],
+                        ['__URL_PREFIX__', urlPrefix]
                     ]
                 )
             };
-            this.render_update_html = function (app_name, modelName) {
-                var modelName = 'modelName';
+            this.render_update_html = function (app_name) {
+                var urlPrefix = app_name + '.' + this.l_name();
+
                 return _this.replace_in_template(
-                    _this.create,
+                    _this.update,
                     [
-                        ['__MODEL_NAME__', modelName],
-                        ['__APP_NAME__', app_name]
+                        ['__MODEL_NAME__', this.displayName],
+                        ['__APP_NAME__', app_name],
+                        ['__URL_PREFIX__', urlPrefix]
                     ]
                 )
             };
+
+            this.render_base_html = function () {
+                return _this.base;
+            }
+
             this.form_fields = function () {
                 var readable_field_names = (this.readable_fields()).map(function (field) {
                     return field.name
@@ -912,6 +1084,7 @@ function ModelParserFactory() {
     return function ($scope, $http) {
         function Parser() {
             this.parse = function (file, callback) {
+
                 var reader = new FileReader();
 
                 reader.onload = function (e) {
@@ -920,7 +1093,6 @@ function ModelParserFactory() {
                     var model_definitions = [];
                     var current_model = null;
                     var multi_line = '';
-
                     var model_regex = new RegExp("class\ ([a-zA-Z_0-9]*)[\(]([a-zA-Z._]*)[\)][\:]$");
                     var field_regex = new RegExp("^([a-zA-Z0-9_]+)\ \=\ ([a-zA-Z0-9._]+)[\(](.*)[\)]$");
 
@@ -928,14 +1100,19 @@ function ModelParserFactory() {
                         line = line.trim();
                         var model_match = model_regex.exec(line);
                         if (model_match && model_match[2].match(/model/i)) {
-                            indexOfName = lines[i + 1].indexOf('# ');
-                            current_model.name = lines[i + 1].slice(indexOfName);
+                            var indexOfName = lines[i + 1].indexOf('# ');
+                            var displayName = '';
+                            if (indexOfName > -1) {
+                                displayName = lines[i + 1].slice(indexOfName + 2);
+                            }
                             current_model = {
                                 'name': model_match[1],
+                                'displayName': displayName,
                                 'class': model_match[2],
                                 'fields': [],
                                 'relationships': []
                             };
+
                             model_definitions.push(current_model);
                             multi_line = '';
                         }
@@ -1006,17 +1183,14 @@ function ProjectFactory() {
 
         var _this = this;
         _this.http = http;
-        _this.settings_py = '';
-        _this.urls_py = '';
-        _this.wsgi_py = '';
-        _this.manage_py = '';
-        _this.channels_py = '';
+        _this.project_base_html = '';
 
-        _this.http.get('app/partials/py/settings.py').then(function (e) { _this.settings_py = e.data });
-        _this.http.get('app/partials/py/manage.py').then(function (e) { _this.manage_py = e.data });
-        _this.http.get('app/partials/py/urls.py').then(function (e) { _this.urls_py = e.data });
-        _this.http.get('app/partials/py/wsgi.py').then(function (e) { _this.wsgi_py = e.data });
-        _this.http.get('app/partials/py/channels.py').then(function (e) { _this.channels_py = e.data });
+        // _this.http.get('app/partials/py/settings.py').then(function (e) { _this.settings_py = e.data });
+        // _this.http.get('app/partials/py/manage.py').then(function (e) { _this.manage_py = e.data });
+        // _this.http.get('app/partials/py/urls.py').then(function (e) { _this.urls_py = e.data });
+        // _this.http.get('app/partials/py/wsgi.py').then(function (e) { _this.wsgi_py = e.data });
+        // _this.http.get('app/partials/py/channels.py').then(function (e) { _this.channels_py = e.data });
+        _this.http.get('app/partials/views/project_base.html').then(function (e) { _this.project_base_html = e.data });
 
         _this.load = function (py, project_name) {
             return _this.http.get(py).then(function (e) {
@@ -1095,6 +1269,9 @@ function ProjectFactory() {
             );
         };
 
+        _this.render_project_base_html = function () {
+            return _this.project_base_html;
+        }
     }
 }
 angular.module('builder.services', [])

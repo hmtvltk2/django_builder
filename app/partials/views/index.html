@@ -64,12 +64,10 @@ CHUYÊN ĐỀ LPG
             {% csrf_token %}
             <div class="row">
                 <div class="col-md-6">
-                    {{form.tentramcap|as_crispy_field}}
-                    {{form.loaidoituongLPG|as_crispy_field}}
+                    __SEARCH_COLUMN_1__
                 </div>
                 <div class="col-md-6">
-                    {{form.diachi|as_crispy_field}}
-                    {{form.congsuat|as_crispy_field}}
+                    __SEARCH_COLUMN_2__
                 </div>
             </div>
 
@@ -119,9 +117,10 @@ CHUYÊN ĐỀ LPG
                 __INDEX_BODY__
                 <td>
                     <div class="text-nowrap text-center">
-                        <a href="{% url 'view' model.id %}" class="btn btn-icon bg-success-400"><i class="icon-eye"></i></a>
-                        <a href="{% url 'update' model.id %}" class="btn btn-icon bg-primary-400"><i class="icon-pencil5"></i></a>
-                        <a href="{% url 'delete' model.id %}" class="btn-delete btn btn-icon bg-danger-400">
+                        <a href="{% url '__URL_PREFIX__.view' model.id %}" class="btn btn-icon bg-success-400"><i class="icon-eye"></i></a>
+                        <a href="{% url '__URL_PREFIX__.update' model.id %}" class="btn btn-icon bg-primary-400"><i
+                                class="icon-pencil5"></i></a>
+                        <a href="{% url '__URL_PREFIX__.delete' model.id %}" class="btn-delete btn btn-icon bg-danger-400">
                             <i class="icon-trash"></i>
                         </a>
                     </div>
