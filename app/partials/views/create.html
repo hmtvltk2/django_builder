@@ -1,4 +1,4 @@
-{% extends "sample/base.html" %}
+{% extends "__APP_NAME__/base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -16,7 +16,7 @@ Thêm Mới __MODEL_NAME__
 {% block breadcrumb %}
 <div class="breadcrumb">
     <a href="/" class="breadcrumb-item"><i class="icon-home2 mr-2"></i> Trang Chủ</a>
-    <a href="{% url '__URL_PREFIX__.view' %}" class="breadcrumb-item">__MODEL_NAME__</a>
+    <a href="{% url '__URL_PREFIX__.index' %}" class="breadcrumb-item">__MODEL_NAME__</a>
     <span class="breadcrumb-item active">Thêm Mới</span>
 </div>
 {% endblock %}
@@ -28,7 +28,7 @@ Thêm Mới __MODEL_NAME__
     </div>
 
     <div class="card-body">
-        {% include '__APP_NAME__/_form.html' with isNew=True %}
+        {% include '__APP_NAME__/__LMODEL_NAME___form.html' with isNew=True %}
     </div>
 </div>
 {% endblock content %}

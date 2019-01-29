@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "__APP_NAME__/base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -82,6 +82,10 @@ CHUYÊN ĐỀ LPG
     <div class="card-header header-elements-inline">
         <h5 class="card-title font-weight-bold">Danh Sách __MODEL_NAME__</h5>
         <div class="header-elements">
+            <a class="btn bg-primary btn-labeled btn-labeled-right legitRipple mr-1" href="{% url '__URL_PREFIX__.create' %}">
+                Thêm mới
+                <b><i class="icon-diff-added"></i></b>
+            </a>
             <div class="btn-group">
                 <button type="button" class="btn btn-icon bg-teal-400 dropdown-toggle" title="Export" data-toggle="dropdown">
                     <i class="icon-download"></i>
